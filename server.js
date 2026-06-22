@@ -43,6 +43,7 @@ function proxyMonday(req, res) {
   let body = "";
   req.on("data", (chunk) => (body += chunk));
   req.on("end", () => {
+    const auth = process.env.MONDAY_API_TOKEN || req.headers["authorization"] || "";
     const options = {
       hostname: "api.monday.com",
       path: "/v2",
@@ -50,7 +51,7 @@ function proxyMonday(req, res) {
       headers: {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(body),
-        Authorization: req.headers["authorization"] || "",
+        Authorization: auth,
         "API-Version": "2024-10",
       },
     };

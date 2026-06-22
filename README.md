@@ -10,11 +10,15 @@ A PWA that pulls live data from the **Disciplinary Action Tracker** board on mon
    npm install
    npm start
    ```
-3. Open `http://localhost:3000` in Chrome or Edge.
-4. Click the gear icon and paste a monday.com personal API token (Avatar → Admin → API → Generate). The token is stored only in your browser (localStorage) and is sent only to your own local server, which relays it to monday.com — it's never saved on disk.
+3. Set your monday.com personal API token as an environment variable before starting the server (Avatar → Admin → API → Generate, in monday.com):
+   ```
+   export MONDAY_API_TOKEN="paste-your-token-here"
+   npm start
+   ```
+4. Open `http://localhost:3000` in Chrome or Edge — it loads data automatically, no login step needed.
 5. Click **Install App** in the top bar (or use your browser's "Install" / "Add to Home Screen" option) to use it like a native app on desktop or mobile.
 
-A monday.com API call can't be made directly from a browser (monday's API doesn't allow cross-origin requests), so `server.js` runs a tiny local proxy that relays requests — this is why the app needs `npm start` rather than just opening `index.html` directly.
+A monday.com API call can't be made directly from a browser (monday's API doesn't allow cross-origin requests), so `server.js` runs a tiny local proxy that relays requests and attaches the token server-side — this is why the app needs `npm start` rather than just opening `index.html` directly.
 
 ## Notes on the data
 
@@ -29,6 +33,7 @@ This project is set up to deploy on Vercel with zero config:
 - `index.html`, `styles.css`, `app.js`, `manifest.json`, `icons/` are served as static files.
 - `api/monday.js` is a Vercel Serverless Function that does the same CORS-proxy job as `server.js` does locally — Vercel auto-detects anything in `/api` as a function, no build step needed.
 - `server.js` is only used for local development (`npm start`); Vercel ignores it.
+- `vercel.json` forces Vercel to treat this as a static site + functions deployment (`"framework": null`). Without it, Vercel can mistakenly try to run `server.js` itself as the app, which breaks the static pages — this happened once already and was fixed by adding `vercel.json` and removing the `"main"` field from `package.json`.
 
 To deploy:
 
@@ -42,7 +47,8 @@ To deploy:
    ```
 2. Go to vercel.com → **Add New Project** → import that repo. Leave the framework preset as "Other" — no build command or output directory is needed.
 3. Deploy. Vercel gives you a `https://<project>.vercel.app` URL.
-4. Open that URL, click the gear icon, paste your monday.com personal API token, and sync. The token still only lives in the browser's localStorage — Vercel's function just relays the request, the same as the local proxy does.
-5. Anyone with the link can install it as a PWA from their phone or desktop browser. Each person enters their own monday.com token, so access still follows your monday.com permissions.
+4. In the Vercel project, go to **Settings → Environment Variables** and add `MONDAY_API_TOKEN` with your monday.com personal API token as the value (Production environment). Redeploy (or push a commit) so the function picks it up.
+5. Open the URL — it loads data automatically, with no token prompt. The token lives only in Vercel's environment variable; it's never sent to or stored in the browser.
+6. Anyone with the link can install it as a PWA and see the same live board data, since the token is shared server-side rather than entered per-person.
 
 Once it's on a real HTTPS URL, the "Install App" prompt and offline shell caching (service worker) work the same way they do locally — those features need HTTPS or localhost, which Vercel provides automatically.

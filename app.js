@@ -7,7 +7,6 @@ const DEFAULT_BOARD_ID = "18418855689";
 // API does not allow direct browser (CORS) requests.
 const API_URL = "/api/monday";
 const STORAGE_KEYS = {
-  token: "da_dashboard_token",
   boardId: "da_dashboard_board_id",
   cache: "da_dashboard_cache",
 };
@@ -66,10 +65,8 @@ let allRecords = [];
 let filteredRecords = [];
 
 // ---------- Storage helpers ----------
-function getToken() { return localStorage.getItem(STORAGE_KEYS.token) || ""; }
 function getBoardId() { return localStorage.getItem(STORAGE_KEYS.boardId) || DEFAULT_BOARD_ID; }
-function saveSettings(token, boardId) {
-  localStorage.setItem(STORAGE_KEYS.token, token);
+function saveSettings(boardId) {
   localStorage.setItem(STORAGE_KEYS.boardId, boardId || DEFAULT_BOARD_ID);
 }
 function cacheRecords(records) {
@@ -85,11 +82,13 @@ function loadCachedRecords() {
 
 // ---------- monday.com API ----------
 async function mondayQuery(query, variables) {
+  // No Authorization header is sent from the browser -- the server-side
+  // proxy (api/monday.js or server.js) injects the token itself from the
+  // MONDAY_API_TOKEN environment variable.
   const res = await fetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: getToken(),
       "API-Version": "2024-10",
     },
     body: JSON.stringify({ query, variables }),
@@ -373,11 +372,6 @@ function applyFilters() {
 // ---------- Sync ----------
 async function syncData(showSpinner = true) {
   const statusEl = document.getElementById("syncStatus");
-  if (!getToken()) {
-    document.getElementById("settingsOverlay").hidden = false;
-    statusEl.textContent = "Connect your monday.com account to load data";
-    return;
-  }
   if (showSpinner) statusEl.textContent = "Syncing...";
   try {
     const items = await fetchAllItems(getBoardId());
@@ -424,7 +418,6 @@ function wireEvents() {
 
   document.getElementById("refreshBtn").addEventListener("click", () => syncData(true));
   document.getElementById("settingsBtn").addEventListener("click", () => {
-    document.getElementById("tokenInput").value = getToken();
     document.getElementById("boardIdInput").value = getBoardId();
     document.getElementById("settingsOverlay").hidden = false;
   });
@@ -432,12 +425,8 @@ function wireEvents() {
     document.getElementById("settingsOverlay").hidden = true;
   });
   document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
-    const token = document.getElementById("tokenInput").value.trim();
     const boardId = document.getElementById("boardIdInput").value.trim() || DEFAULT_BOARD_ID;
-    const errEl = document.getElementById("settingsError");
-    errEl.hidden = true;
-    if (!token) { errEl.textContent = "Please paste your API token."; errEl.hidden = false; return; }
-    saveSettings(token, boardId);
+    saveSettings(boardId);
     document.getElementById("settingsOverlay").hidden = true;
     await syncData(true);
   });
