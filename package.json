@@ -1,0 +1,10 @@
+{
+  "name": "disciplinary-action-dashboard",
+  "version": "1.0.0",
+  "description": "PWA dashboard for monday.com disciplinary action submissions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "UNLICENSED"
+}

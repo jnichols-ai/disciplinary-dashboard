@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Disciplinary Action Dashboard</title>
+<meta name="theme-color" content="#101010" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-bar-title">
+    <div class="logo-box">DA</div>
+    <div>
+      <h1>Disciplinary Action Dashboard</h1>
+      <p class="app-bar-subtitle">FRONTLINE PEST CONTROL &middot; EMPLOYEE RELATIONS</p>
+    </div>
+  </div>
+  <div class="app-bar-actions">
+    <button id="refreshBtn" class="outline-btn" title="Refresh data">&#x21bb; Refresh</button>
+    <button id="settingsBtn" class="outline-btn" title="Settings">&#x2699; Settings</button>
+    <button id="installBtn" class="primary-btn" hidden>Install App</button>
+  </div>
+</header>
+<p id="syncStatus" class="sync-status">Not synced yet</p>
+
+<main>
+
+  <section class="stats-row" id="statsRow"></section>
+
+  <section class="filter-panel">
+    <div class="filter-panel-header">
+      <h2><span class="section-bar"></span>Filters</h2>
+      <button id="clearFiltersBtn" class="outline-btn small">Clear</button>
+    </div>
+    <div class="filter-grid">
+      <label class="filter-field">
+        <span>Branch / Office</span>
+        <select id="filterBranch"><option value="">All branches</option></select>
+      </label>
+      <label class="filter-field">
+        <span>Region</span>
+        <select id="filterRegion"><option value="">All regions</option></select>
+      </label>
+      <label class="filter-field">
+        <span>Submitting Manager</span>
+        <select id="filterManager"><option value="">All managers</option></select>
+      </label>
+      <label class="filter-field">
+        <span>Type of Write-up</span>
+        <select id="filterType"><option value="">All types</option></select>
+      </label>
+      <label class="filter-field">
+        <span>Status</span>
+        <select id="filterStatus"><option value="">All statuses</option></select>
+      </label>
+      <label class="filter-field">
+        <span>Violation Category</span>
+        <select id="filterCategory"><option value="">All categories</option></select>
+      </label>
+      <label class="filter-field">
+        <span>Employee</span>
+        <input id="filterEmployee" type="text" placeholder="Search employee name..." />
+      </label>
+      <label class="filter-field">
+        <span>Incident date from</span>
+        <input id="filterDateFrom" type="date" />
+      </label>
+      <label class="filter-field">
+        <span>Incident date to</span>
+        <input id="filterDateTo" type="date" />
+      </label>
+      <label class="filter-field checkbox-field">
+        <input id="filterRepeat" type="checkbox" />
+        <span>Repeat offenses only</span>
+      </label>
+    </div>
+  </section>
+
+  <section class="results-header">
+    <span id="resultsCount">0 records</span>
+    <select id="sortBy">
+      <option value="write_up_date_desc">Write-up date (newest)</option>
+      <option value="write_up_date_asc">Write-up date (oldest)</option>
+      <option value="incident_date_desc">Incident date (newest)</option>
+      <option value="employee_asc">Employee (A-Z)</option>
+      <option value="branch_asc">Branch (A-Z)</option>
+    </select>
+  </section>
+
+  <section id="emptyState" class="empty-state" hidden>
+    <p>No submissions match your filters.</p>
+  </section>
+
+  <section id="cardList" class="card-list"></section>
+
+</main>
+
+<div id="detailOverlay" class="overlay" hidden>
+  <div class="overlay-panel">
+    <button class="overlay-close" id="detailClose">&times;</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<div id="settingsOverlay" class="overlay" hidden>
+  <div class="overlay-panel">
+    <button class="overlay-close" id="settingsClose">&times;</button>
+    <h2>Connect to monday.com</h2>
+    <p class="overlay-hint">
+      Generate a personal API token in monday.com under
+      <strong>Avatar &rarr; Admin &rarr; API</strong>, then paste it below.
+      It is stored only on this device.
+    </p>
+    <label class="filter-field">
+      <span>Personal API Token</span>
+      <input id="tokenInput" type="password" placeholder="eyJhbGciOiJ..." />
+    </label>
+    <label class="filter-field">
+      <span>Board ID</span>
+      <input id="boardIdInput" type="text" placeholder="18418855689" />
+    </label>
+    <button id="saveSettingsBtn" class="primary-btn full-width">Save &amp; Sync</button>
+    <p id="settingsError" class="error-text" hidden></p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
