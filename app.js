@@ -293,7 +293,10 @@ function renderList() {
           ${r.region ? "&nbsp;|&nbsp; Region: <strong>" + r.region + "</strong>" : ""}
           ${r.violationCategory ? "&nbsp;|&nbsp; <strong>" + r.violationCategory + "</strong>" : ""}
         </div>
-        ${r.url ? `<a class="monday-link" href="${r.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open in monday &rarr;</a>` : ""}
+        <div class="record-card-actions">
+          ${r.url ? `<a class="monday-link" href="${r.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open in monday &rarr;</a>` : ""}
+          ${r.attachmentAssetId ? `<button type="button" class="outline-btn small download-btn" data-asset-id="${r.attachmentAssetId}" data-name="${(r.attachmentName || "attachment.pdf").replace(/"/g, "&quot;")}">&#x2913; Download PDF</button>` : ""}
+        </div>
       </article>`
     )
     .join("");
@@ -301,6 +304,38 @@ function renderList() {
   listEl.querySelectorAll(".record-card").forEach((card) => {
     card.addEventListener("click", () => openDetail(card.dataset.id));
   });
+  listEl.querySelectorAll(".download-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      downloadAttachment(btn);
+    });
+  });
+}
+
+async function downloadAttachment(btn) {
+  const assetId = btn.dataset.assetId;
+  const fileName = btn.dataset.name || "attachment.pdf";
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Loading...";
+  try {
+    const url = await fetchAssetUrl(assetId);
+    if (url) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 function openDetail(id) {
@@ -317,23 +352,21 @@ function openDetail(id) {
     <div class="detail-row"><span class="label">Write-up Date</span>${r.writeUpDate || "—"}</div>
     <div class="detail-row"><span class="label">Repeat Offense</span>${r.repeatOffense ? "Yes" : "No"}</div>
     <div class="detail-row"><span class="label">Description</span><div class="detail-description">${r.description || "No description provided."}</div></div>
-    <div class="detail-row" id="attachmentRow"><span class="label">Attachment</span>${r.attachmentName ? "Loading link..." : "None"}</div>
+    <div class="detail-row" id="attachmentRow">
+      <span class="label">Attachment</span>
+      ${
+        r.attachmentAssetId
+          ? `<button type="button" class="outline-btn download-btn" data-asset-id="${r.attachmentAssetId}" data-name="${(r.attachmentName || "attachment.pdf").replace(/"/g, "&quot;")}">&#x2913; Download ${r.attachmentName || "PDF"}</button>`
+          : "None"
+      }
+    </div>
     ${r.url ? `<a class="monday-link" href="${r.url}" target="_blank" rel="noopener">Open in monday &rarr;</a>` : ""}
   `;
   document.getElementById("detailOverlay").hidden = false;
 
-  if (r.attachmentAssetId) {
-    fetchAssetUrl(r.attachmentAssetId)
-      .then((url) => {
-        const row = document.getElementById("attachmentRow");
-        if (row) {
-          row.innerHTML = url
-            ? `<span class="label">Attachment</span><a class="detail-link" href="${url}" target="_blank" rel="noopener">${r.attachmentName}</a>`
-            : `<span class="label">Attachment</span>${r.attachmentName}`;
-        }
-      })
-      .catch(() => {});
-  }
+  content.querySelectorAll(".download-btn").forEach((btn) => {
+    btn.addEventListener("click", () => downloadAttachment(btn));
+  });
 }
 
 // ---------- Filtering ----------

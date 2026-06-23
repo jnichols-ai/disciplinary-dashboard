@@ -258,6 +258,16 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem 1.25rem; }
 }
 .monday-link:hover { text-decoration: underline; }
 
+.record-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.download-btn {
+  white-space: nowrap;
+}
+
 .empty-state {
   text-align: center;
   padding: 2.5rem 1rem;
