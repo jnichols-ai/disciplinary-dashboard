@@ -277,6 +277,9 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem 1.25rem; }
   justify-content: center;
   z-index: 50;
 }
+.overlay[hidden] {
+  display: none;
+}
 .overlay-panel {
   background: white;
   border-radius: 12px 12px 0 0;
