@@ -2,7 +2,7 @@
 // The service worker only re-caches the shell when this file's contents
 // change, so without a version bump, returning visitors keep getting the
 // old cached app.js/styles.css even after a new deploy.
-const CACHE_NAME = "da-dashboard-v6";
+const CACHE_NAME = "da-dashboard-v7";
 const SHELL_FILES = [
   "./index.html",
   "./styles.css",

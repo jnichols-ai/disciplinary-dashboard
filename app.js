@@ -314,17 +314,24 @@ async function downloadAttachment(btn) {
   try {
     const url = await fetchAssetUrl(assetId);
     if (url) {
+      // No target="_blank" here: by the time this async call resolves, the
+      // browser's "this came from a real click" window has expired, and an
+      // anchor that opens a new tab gets silently blocked as a popup. The
+      // signed monday/S3 URL already comes back with a
+      // Content-Disposition: attachment header, so a same-tab anchor click
+      // triggers a normal download instead of navigating away.
       const a = document.createElement("a");
       a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener";
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
+    } else {
+      window.alert("Couldn't get a download link for this file. Try again in a moment.");
     }
   } catch (err) {
     console.error(err);
+    window.alert("Download failed: " + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = original;
