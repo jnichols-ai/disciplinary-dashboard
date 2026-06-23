@@ -424,6 +424,9 @@ function wireEvents() {
   document.getElementById("settingsClose").addEventListener("click", () => {
     document.getElementById("settingsOverlay").hidden = true;
   });
+  document.getElementById("settingsOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "settingsOverlay") document.getElementById("settingsOverlay").hidden = true;
+  });
   document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
     const boardId = document.getElementById("boardIdInput").value.trim() || DEFAULT_BOARD_ID;
     saveSettings(boardId);
@@ -436,6 +439,12 @@ function wireEvents() {
   });
   document.getElementById("detailOverlay").addEventListener("click", (e) => {
     if (e.target.id === "detailOverlay") document.getElementById("detailOverlay").hidden = true;
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    document.getElementById("settingsOverlay").hidden = true;
+    document.getElementById("detailOverlay").hidden = true;
   });
 
   // PWA install prompt
