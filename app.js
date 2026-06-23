@@ -26,7 +26,6 @@ const COLUMNS = {
   description: "long_text_mm4j986c",
   violationCategory: "dropdown_mm4j3cpq",
   managerRole: "dropdown_mm4j3vra",
-  status: "color_mm4jy3a1",
 };
 
 const KNOWN_ACTION_TYPES = [
@@ -36,7 +35,6 @@ const KNOWN_ACTION_TYPES = [
   "Suspension",
   "Termination",
 ];
-const KNOWN_STATUSES = ["Draft", "Pending Signature", "Acknowledged", "Escalated", "Closed"];
 const KNOWN_CATEGORIES = [
   "Attendance/Tardiness",
   "Policy Violation",
@@ -53,11 +51,6 @@ const BADGE_COLORS = {
   "Final Written Warning": "#c8102e",
   "Suspension": "#a3081f",
   "Termination": "#7a0a1e",
-  "Draft": "#2e6f9e",
-  "Pending Signature": "#c08a2e",
-  "Acknowledged": "#1f7a3d",
-  "Escalated": "#c8102e",
-  "Closed": "#757575",
   "Repeat Offense": "#101010",
 };
 
@@ -151,7 +144,7 @@ async function fetchAllItems(boardId) {
 }
 
 async function fetchAssetUrl(assetId) {
-  const query = `query ($ids: [ID!]) { assets(ids: $ids) { public_url } }`;
+  const query = `query ($ids: [ID!]!) { assets(ids: $ids) { public_url } }`;
   const data = await mondayQuery(query, { ids: [assetId] });
   return data.assets?.[0]?.public_url || null;
 }
@@ -198,7 +191,6 @@ function parseItem(item) {
     description: colText(item, "description"),
     violationCategory: colText(item, "violationCategory"),
     managerRole: colText(item, "managerRole"),
-    status: colText(item, "status"),
     attachmentName: colText(item, "pdfAttachment"),
     attachmentAssetId: files[0]?.assetId || null,
   };
@@ -226,7 +218,6 @@ function refreshFilterOptions() {
   populateSelect(document.getElementById("filterRegion"), uniqueSorted(allRecords.map((r) => r.region)), "All regions");
   populateSelect(document.getElementById("filterManager"), uniqueSorted(allRecords.map((r) => r.manager)), "All managers");
   populateSelect(document.getElementById("filterType"), KNOWN_ACTION_TYPES, "All types");
-  populateSelect(document.getElementById("filterStatus"), KNOWN_STATUSES, "All statuses");
   populateSelect(document.getElementById("filterCategory"), KNOWN_CATEGORIES, "All categories");
 }
 
@@ -237,15 +228,17 @@ function badge(text) {
 
 function renderStats() {
   const total = filteredRecords.length;
-  const byStage = {};
-  KNOWN_STATUSES.forEach((s) => (byStage[s] = 0));
-  filteredRecords.forEach((r) => { if (r.status) byStage[r.status] = (byStage[r.status] || 0) + 1; });
+  const byType = {};
+  KNOWN_ACTION_TYPES.forEach((t) => (byType[t] = 0));
+  filteredRecords.forEach((r) => { if (r.actionType) byType[r.actionType] = (byType[r.actionType] || 0) + 1; });
+  const repeatCount = filteredRecords.filter((r) => r.repeatOffense).length;
 
   const cards = [
     `<div class="stat-card accent"><div class="stat-value">${total}</div><div class="stat-label">Total shown</div></div>`,
-    ...Object.entries(byStage).map(
+    ...Object.entries(byType).map(
       ([label, count]) => `<div class="stat-card"><div class="stat-value">${count}</div><div class="stat-label">${label}</div></div>`
     ),
+    `<div class="stat-card"><div class="stat-value">${repeatCount}</div><div class="stat-label">Repeat offenses</div></div>`,
   ];
   document.getElementById("statsRow").innerHTML = cards.join("");
 }
@@ -287,7 +280,7 @@ function renderList() {
           <span class="record-employee">${r.employee} &middot; ${r.branch || "Unknown branch"} &middot; ${r.manager || "—"}</span>
           <span class="record-date">${r.writeUpDate || "—"}</span>
         </div>
-        <div class="badge-row">${badge(r.actionType)}${badge(r.status)}${r.repeatOffense ? badge("Repeat Offense") : ""}</div>
+        <div class="badge-row">${badge(r.actionType)}${r.repeatOffense ? badge("Repeat Offense") : ""}</div>
         <div class="record-meta">
           Incident: <strong>${r.incidentDate || "—"}</strong>
           ${r.region ? "&nbsp;|&nbsp; Region: <strong>" + r.region + "</strong>" : ""}
@@ -344,7 +337,7 @@ function openDetail(id) {
   const content = document.getElementById("detailContent");
   content.innerHTML = `
     <h2>${r.employee}</h2>
-    <div class="badge-row" style="margin-bottom:1rem">${badge(r.actionType)}${badge(r.status)}</div>
+    <div class="badge-row" style="margin-bottom:1rem">${badge(r.actionType)}${r.repeatOffense ? badge("Repeat Offense") : ""}</div>
     <div class="detail-row"><span class="label">Branch / Region</span>${r.branch || "—"} ${r.region ? "(" + r.region + ")" : ""}</div>
     <div class="detail-row"><span class="label">Submitting Manager</span>${r.manager || "—"} ${r.managerRole ? "(" + r.managerRole + ")" : ""}</div>
     <div class="detail-row"><span class="label">Violation Category</span>${r.violationCategory || "—"}</div>
@@ -375,7 +368,6 @@ function applyFilters() {
   const region = document.getElementById("filterRegion").value;
   const manager = document.getElementById("filterManager").value;
   const type = document.getElementById("filterType").value;
-  const status = document.getElementById("filterStatus").value;
   const category = document.getElementById("filterCategory").value;
   const employee = document.getElementById("filterEmployee").value.trim().toLowerCase();
   const dateFrom = document.getElementById("filterDateFrom").value;
@@ -388,7 +380,6 @@ function applyFilters() {
     if (region && r.region !== region) return false;
     if (manager && r.manager !== manager) return false;
     if (type && r.actionType !== type) return false;
-    if (status && r.status !== status) return false;
     if (category && r.violationCategory !== category) return false;
     if (employee && !r.employee.toLowerCase().includes(employee)) return false;
     if (repeatOnly && !r.repeatOffense) return false;
@@ -434,7 +425,7 @@ function loadFromCache() {
 function wireEvents() {
   [
     "filterBranch", "filterRegion", "filterManager", "filterType",
-    "filterStatus", "filterCategory", "filterRepeat", "sortBy",
+    "filterCategory", "filterRepeat", "sortBy",
   ].forEach((id) => document.getElementById(id).addEventListener("change", applyFilters));
   document.getElementById("filterEmployee").addEventListener("input", applyFilters);
   document.getElementById("filterDateFrom").addEventListener("change", applyFilters);
