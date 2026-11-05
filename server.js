@@ -8,6 +8,7 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const { checkRequest } = require("./lib/proxyGuard");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
@@ -39,11 +40,9 @@ function serveStatic(req, res) {
   });
 }
 
-function proxyMonday(req, res) {
-  let body = "";
-  req.on("data", (chunk) => (body += chunk));
-  req.on("end", () => {
-    const auth = process.env.MONDAY_API_TOKEN || req.headers["authorization"] || "";
+function callMonday(auth, query, variables) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ query, variables });
     const options = {
       hostname: "api.monday.com",
       path: "/v2",
@@ -58,17 +57,36 @@ function proxyMonday(req, res) {
     const proxyReq = https.request(options, (proxyRes) => {
       let responseBody = "";
       proxyRes.on("data", (chunk) => (responseBody += chunk));
-      proxyRes.on("end", () => {
-        res.writeHead(proxyRes.statusCode, { "Content-Type": "application/json" });
-        res.end(responseBody);
-      });
+      proxyRes.on("end", () => resolve({ status: proxyRes.statusCode, text: responseBody }));
     });
-    proxyReq.on("error", (err) => {
-      res.writeHead(502, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ errors: [{ message: err.message }] }));
-    });
+    proxyReq.on("error", reject);
     proxyReq.write(body);
     proxyReq.end();
+  });
+}
+
+// Same allowlist as the Vercel function (see lib/proxyGuard.js).
+function proxyMonday(req, res) {
+  let raw = "";
+  req.on("data", (chunk) => (raw += chunk));
+  req.on("end", async () => {
+    const auth = process.env.MONDAY_API_TOKEN || req.headers["authorization"] || "";
+    try {
+      const body = JSON.parse(raw || "{}");
+      const denied = await checkRequest(body, async (q, v) =>
+        JSON.parse((await callMonday(auth, q, v)).text)
+      );
+      if (denied) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ errors: [{ message: denied }] }));
+      }
+      const { status, text } = await callMonday(auth, body.query, body.variables);
+      res.writeHead(status, { "Content-Type": "application/json" });
+      res.end(text);
+    } catch (err) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ errors: [{ message: err.message }] }));
+    }
   });
 }
 
